@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.api.routes import auth, health, metrics, releases, repositories, slack
+from app.api.routes import auth, board, health, metrics, releases, repositories, slack
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging, get_logger
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix=prefix)
     app.include_router(auth.router, prefix=prefix)
     app.include_router(repositories.router, prefix=prefix)
+    app.include_router(board.router, prefix=prefix)
     app.include_router(releases.router, prefix=prefix)
     app.include_router(slack.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)

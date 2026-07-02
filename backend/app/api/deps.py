@@ -11,6 +11,7 @@ from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models import User
 from app.services.auth_service import AuthService
+from app.services.board_service import BoardService
 from app.services.metrics_service import MetricsService
 from app.services.release_service import ReleaseService
 from app.services.repository_service import RepositoryService
@@ -51,6 +52,10 @@ def get_auth_service(db: DbSession) -> AuthService:
 
 def get_repository_service(db: DbSession) -> RepositoryService:
     return RepositoryService(db)
+
+
+def get_board_service(db: DbSession) -> BoardService:
+    return BoardService(db)
 
 
 def get_release_service(db: DbSession) -> ReleaseService:

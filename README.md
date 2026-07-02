@@ -12,6 +12,7 @@ Built as a production-style internal tool: FastAPI + SQLAlchemy + PostgreSQL bac
 - **Four output formats** — executive (managers), technical (engineers), publish-ready markdown, and Slack-optimized mrkdwn.
 - **RAG layer** — commits, MRs, issues and previous release notes are embedded into a per-repository Chroma vector store; relevant historical context is retrieved before generation so notes match past tone and conventions.
 - **Slack publishing** — Block Kit message with risk indicator, full notes as a thread reply, permalink returned and stored. Auto-publish from the workflow or manual publish from the UI.
+- **Issue board** — GitLab-style board per repository with live issues in Open and Closed columns, plus configurable label lists (open issues with a listed label move into their own column, like GitLab boards). Cards can be dragged between columns — closing/reopening issues and adding/removing labels directly in GitLab — and new issues can be created from the board.
 - **Metrics dashboard** — releases per week, category breakdown, generation times, commits/issues analyzed, estimated documentation hours saved.
 - **Security** — JWT auth, Fernet-encrypted third-party tokens, rate limiting, strict input validation, structured audit logging.
 
@@ -101,7 +102,7 @@ npm run dev
 ### Tests
 
 ```bash
-cd backend && .venv/bin/python -m pytest        # 36 unit + integration tests
+cd backend && .venv/bin/python -m pytest        # 46 unit + integration tests
 cd frontend && npm run build                    # strict TS compile + production build
 ```
 
@@ -115,6 +116,11 @@ The test suite runs against SQLite with fake GitLab/Slack/LLM boundaries — inc
 | GET | `/api/v1/auth/me` | Current user |
 | POST | `/api/v1/repositories/connect` | Validate token against GitLab and connect a project |
 | GET | `/api/v1/repositories` · `/{id}` | List / detail with recent releases |
+| GET | `/api/v1/repositories/{id}/board` | Issue board: live GitLab issues in Open / label lists / Closed columns |
+| POST | `/api/v1/repositories/{id}/board/lists` | Add a board list for a project label |
+| DELETE | `/api/v1/repositories/{id}/board/lists/{list_id}` | Remove a board list |
+| POST | `/api/v1/repositories/{id}/board/issues` | Create an issue in the GitLab project |
+| POST | `/api/v1/repositories/{id}/board/issues/{iid}/move` | Move an issue between board columns (close/reopen, add/remove labels) |
 | POST | `/api/v1/releases/generate` | Create release + run the workflow in background (202) |
 | GET | `/api/v1/releases` · `/{id}` | Paginated list / full detail (notes, QA report, sources) |
 | POST | `/api/v1/slack/connect` | Verify and store a Slack bot token |
@@ -130,7 +136,7 @@ backend/
     core/           # config, security (JWT/Fernet), logging, rate limiting
     db/             # engine, sessions, init
     models/         # User, Repository, Release, Commit, Issue, MergeRequest,
-                    # SlackWorkspace, GenerationLog
+                    # SlackWorkspace, GenerationLog, BoardList
     schemas/        # Pydantic request/response contracts
     repositories/   # repository pattern over SQLAlchemy
     services/       # service layer (auth, repos, releases, slack, metrics)

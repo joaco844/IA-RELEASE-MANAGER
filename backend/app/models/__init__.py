@@ -1,3 +1,4 @@
+from app.models.board_list import BoardList
 from app.models.commit import Commit
 from app.models.generation_log import GenerationLog
 from app.models.issue import Issue
@@ -8,6 +9,7 @@ from app.models.slack_workspace import SlackWorkspace
 from app.models.user import User
 
 __all__ = [
+    "BoardList",
     "Commit",
     "GenerationLog",
     "Issue",

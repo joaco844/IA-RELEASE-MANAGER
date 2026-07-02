@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
-import { GitBranch, LayoutDashboard, LogOut, Rocket, Settings } from "lucide-react";
+import { CircleDot, GitBranch, LayoutDashboard, LogOut, Rocket, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { getToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/repositories", label: "Repositories", icon: GitBranch, end: false },
+  { to: "/issues", label: "Issues", icon: CircleDot, end: false },
   { to: "/settings", label: "Settings", icon: Settings, end: false },
 ];
 

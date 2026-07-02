@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
 import { DashboardPage } from "@/pages/dashboard";
 import { RepositoriesPage } from "@/pages/repositories";
+import { IssueBoardPage } from "@/pages/issue-board";
 import { RepositoryDetailPage } from "@/pages/repository-detail";
 import { ReleaseBuilderPage } from "@/pages/release-builder";
 import { ReleaseViewerPage } from "@/pages/release-viewer";
@@ -34,6 +35,7 @@ export default function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/repositories" element={<RepositoriesPage />} />
+              <Route path="/issues" element={<IssueBoardPage />} />
               <Route path="/repositories/:id" element={<RepositoryDetailPage />} />
               <Route path="/repositories/:id/releases/new" element={<ReleaseBuilderPage />} />
               <Route path="/releases/:id" element={<ReleaseViewerPage />} />

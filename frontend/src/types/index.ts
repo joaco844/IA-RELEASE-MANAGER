@@ -179,6 +179,72 @@ export interface ReleaseListParams {
   page_size?: number;
 }
 
+// ---------- Issue board ----------
+
+export interface BoardLabel {
+  name: string;
+  color: string;
+  text_color: string;
+  description: string | null;
+}
+
+export interface BoardIssue {
+  iid: number;
+  title: string;
+  state: string;
+  labels: string[];
+  author_name: string | null;
+  assignee_names: string[];
+  milestone: string | null;
+  created_at: string | null;
+  closed_at: string | null;
+  web_url: string | null;
+  user_notes_count: number;
+}
+
+export type BoardColumnType = "open" | "label" | "closed";
+
+export interface BoardColumn {
+  key: string;
+  title: string;
+  type: BoardColumnType;
+  list_id: number | null;
+  label: BoardLabel | null;
+  issues: BoardIssue[];
+}
+
+export interface Board {
+  repository_id: number;
+  repository_name: string;
+  labels: BoardLabel[];
+  columns: BoardColumn[];
+}
+
+export interface BoardList {
+  id: number;
+  label: string;
+  position: number;
+}
+
+export interface BoardColumnRef {
+  type: BoardColumnType;
+  label?: string | null;
+}
+
+export interface CreateBoardIssuePayload {
+  title: string;
+  description?: string;
+  labels: string[];
+}
+
+export interface MoveBoardIssuePayload {
+  iid: number;
+  from_column: BoardColumnRef;
+  to_column: BoardColumnRef;
+  /** Key of the destination column, used for the optimistic cache update. */
+  toKey: string;
+}
+
 // ---------- Slack ----------
 
 export interface SlackWorkspace {

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from app.core.exceptions import ExternalServiceError
+from app.core.exceptions import ExternalServiceError, NotFoundError
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -50,6 +50,31 @@ class IssueData:
 
 
 @dataclass
+class LabelData:
+    name: str
+    color: str
+    text_color: str
+    description: str | None
+
+
+@dataclass
+class BoardIssueData:
+    """Issue as shown on the issue board: any state, richer metadata."""
+
+    iid: int
+    title: str
+    state: str
+    labels: list[str]
+    author_name: str | None
+    assignee_names: list[str]
+    milestone: str | None
+    created_at: datetime | None
+    closed_at: datetime | None
+    web_url: str | None
+    user_notes_count: int
+
+
+@dataclass
 class MergeRequestData:
     iid: int
     title: str
@@ -80,6 +105,28 @@ class PreviousRelease:
     description: str | None
     released_at: datetime | None = None
     extra: dict[str, Any] = field(default_factory=dict)
+
+
+def _board_issue(issue: Any) -> BoardIssueData:
+    """Map a python-gitlab issue object to BoardIssueData."""
+    milestone = getattr(issue, "milestone", None) or {}
+    return BoardIssueData(
+        iid=issue.iid,
+        title=issue.title or "",
+        state=issue.state,
+        labels=list(getattr(issue, "labels", []) or []),
+        author_name=(getattr(issue, "author", None) or {}).get("name"),
+        assignee_names=[
+            a.get("name")
+            for a in (getattr(issue, "assignees", None) or [])
+            if a.get("name")
+        ],
+        milestone=milestone.get("title"),
+        created_at=_parse_dt(getattr(issue, "created_at", None)),
+        closed_at=_parse_dt(getattr(issue, "closed_at", None)),
+        web_url=getattr(issue, "web_url", None),
+        user_notes_count=int(getattr(issue, "user_notes_count", 0) or 0),
+    )
 
 
 def _parse_dt(value: str | None) -> datetime | None:
@@ -267,6 +314,93 @@ class GitLabClient:
             return result
         except self._exceptions.GitlabError as exc:
             raise ExternalServiceError(f"Could not fetch issues: {exc}") from exc
+
+    def fetch_labels(self, project_path: str) -> list[LabelData]:
+        project = self._project(project_path)
+        try:
+            labels = project.labels.list(per_page=100, iterator=True)
+            result: list[LabelData] = []
+            for label in labels:
+                result.append(
+                    LabelData(
+                        name=label.name,
+                        color=getattr(label, "color", "#6699cc") or "#6699cc",
+                        text_color=getattr(label, "text_color", "#ffffff") or "#ffffff",
+                        description=getattr(label, "description", None),
+                    )
+                )
+                if len(result) >= _MAX_ITEMS:
+                    break
+            return result
+        except self._exceptions.GitlabError as exc:
+            raise ExternalServiceError(f"Could not fetch labels: {exc}") from exc
+
+    def fetch_board_issues(self, project_path: str) -> list[BoardIssueData]:
+        """All issues (open and closed) for the issue board view."""
+        project = self._project(project_path)
+        try:
+            issues = project.issues.list(
+                order_by="created_at",
+                sort="desc",
+                per_page=100,
+                iterator=True,
+            )
+            result: list[BoardIssueData] = []
+            for issue in issues:
+                result.append(_board_issue(issue))
+                if len(result) >= _MAX_ITEMS:
+                    break
+            return result
+        except self._exceptions.GitlabError as exc:
+            raise ExternalServiceError(f"Could not fetch board issues: {exc}") from exc
+
+    def create_issue(
+        self,
+        project_path: str,
+        title: str,
+        description: str | None = None,
+        labels: list[str] | None = None,
+    ) -> BoardIssueData:
+        project = self._project(project_path)
+        payload: dict[str, Any] = {"title": title}
+        if description:
+            payload["description"] = description
+        if labels:
+            payload["labels"] = labels
+        try:
+            return _board_issue(project.issues.create(payload))
+        except self._exceptions.GitlabError as exc:
+            raise ExternalServiceError(f"Could not create issue: {exc}") from exc
+
+    def update_board_issue(
+        self,
+        project_path: str,
+        issue_iid: int,
+        add_label: str | None = None,
+        remove_label: str | None = None,
+        state_event: str | None = None,
+    ) -> BoardIssueData:
+        """Apply a board move: adjust labels and/or close/reopen the issue."""
+        project = self._project(project_path)
+        try:
+            issue = project.issues.get(issue_iid)
+        except self._exceptions.GitlabError as exc:
+            if getattr(exc, "response_code", None) == 404:
+                raise NotFoundError(f"Issue #{issue_iid} not found") from exc
+            raise ExternalServiceError(f"Could not fetch issue #{issue_iid}: {exc}") from exc
+        try:
+            labels = set(issue.labels or [])
+            if remove_label:
+                labels.discard(remove_label)
+            if add_label:
+                labels.add(add_label)
+            issue.labels = sorted(labels)
+            if state_event:
+                issue.state_event = state_event
+            issue.save()
+            return _board_issue(issue)
+        except self._exceptions.GitlabError as exc:
+            raise ExternalServiceError(f"Could not update issue #{issue_iid}: {exc}") from exc
 
     def fetch_previous_releases(self, project_path: str, limit: int = 10) -> list[PreviousRelease]:
         """Previous GitLab releases, used as historical context for RAG."""

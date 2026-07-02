@@ -12,8 +12,10 @@ from app.ai.schemas import (
     RiskLevel,
 )
 from app.integrations.gitlab_client import (
+    BoardIssueData,
     CommitData,
     IssueData,
+    LabelData,
     MergeRequestData,
     ProjectInfo,
     ReleaseRangeWindow,
@@ -74,6 +76,71 @@ def sample_mrs() -> list[MergeRequestData]:
     ]
 
 
+def sample_labels() -> list[LabelData]:
+    return [
+        LabelData(name="bug", color="#d9534f", text_color="#ffffff", description="Defects"),
+        LabelData(name="feature", color="#428bca", text_color="#ffffff", description=None),
+        LabelData(name="backend", color="#5cb85c", text_color="#ffffff", description=None),
+    ]
+
+
+def sample_board_issues() -> list[BoardIssueData]:
+    return [
+        BoardIssueData(
+            iid=1,
+            title="Login fails with SSO",
+            state="opened",
+            labels=["bug"],
+            author_name="Ana",
+            assignee_names=["Luis"],
+            milestone="v1.2",
+            created_at=datetime(2026, 6, 10, tzinfo=UTC),
+            closed_at=None,
+            web_url="https://gitlab.example.com/-/issues/1",
+            user_notes_count=3,
+        ),
+        BoardIssueData(
+            iid=2,
+            title="Add CSV export",
+            state="opened",
+            labels=["feature"],
+            author_name="Luis",
+            assignee_names=[],
+            milestone=None,
+            created_at=datetime(2026, 6, 12, tzinfo=UTC),
+            closed_at=None,
+            web_url="https://gitlab.example.com/-/issues/2",
+            user_notes_count=0,
+        ),
+        BoardIssueData(
+            iid=3,
+            title="Update onboarding docs",
+            state="opened",
+            labels=[],
+            author_name="Ana",
+            assignee_names=[],
+            milestone=None,
+            created_at=datetime(2026, 6, 14, tzinfo=UTC),
+            closed_at=None,
+            web_url="https://gitlab.example.com/-/issues/3",
+            user_notes_count=1,
+        ),
+        BoardIssueData(
+            iid=4,
+            title="Crash on empty invoice",
+            state="closed",
+            labels=["bug", "backend"],
+            author_name="Luis",
+            assignee_names=["Ana"],
+            milestone="v1.1",
+            created_at=datetime(2026, 5, 20, tzinfo=UTC),
+            closed_at=datetime(2026, 6, 2, tzinfo=UTC),
+            web_url="https://gitlab.example.com/-/issues/4",
+            user_notes_count=5,
+        ),
+    ]
+
+
 class FakeGitLabClient:
     """Stands in for GitLabClient in services and workflow tests."""
 
@@ -111,6 +178,12 @@ class FakeGitLabClient:
 
     def fetch_previous_releases(self, project_path: str, limit: int = 10):
         return []
+
+    def fetch_labels(self, project_path: str):
+        return sample_labels()
+
+    def fetch_board_issues(self, project_path: str):
+        return sample_board_issues()
 
 
 def sample_analysis() -> ChangeAnalysis:
